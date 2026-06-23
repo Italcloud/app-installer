@@ -121,6 +121,7 @@ chiedi_variabili_app() {
     nginx-proxy-manager)
       leggi_input "Email amministratore" "admin@example.com" ADMIN_EMAIL
       chiedi_password "Password amministratore" ADMIN_PASSWORD
+      leggi_input "Porta management UI" "81" MANAGEMENT_PORT
       ;;
     outline)
       echo "→ Generazione chiavi segrete automatica..."
@@ -207,6 +208,7 @@ genera_env() {
     nginx-proxy-manager)
       sed_inplace "ADMIN_EMAIL" "$ADMIN_EMAIL"
       sed_inplace "ADMIN_PASSWORD" "$ADMIN_PASSWORD"
+      sed_inplace "MANAGEMENT_PORT" "$MANAGEMENT_PORT"
       ;;
     outline)
       sed_inplace "SECRET_KEY" "$SECRET_KEY"
@@ -274,6 +276,9 @@ riepilogo_finale() {
   if [[ "$app" == "omada-controller" ]]; then
     echo "  URL di accesso  : http://$(hostname -I | awk '{print $1}'):8088"
     echo "  URL HTTPS       : https://$(hostname -I | awk '{print $1}'):8043"
+  elif [[ "$app" == "nginx-proxy-manager" ]]; then
+    echo "  UI management   : http://$(hostname -I | awk '{print $1}'):${MANAGEMENT_PORT}"
+    echo "  Proxy HTTP/S    : porte 80 e 443 (configurabili dall'UI)"
   elif [[ "$EXPOSE_MODE" == "porta" ]]; then
     echo "  URL di accesso  : http://$(hostname -I | awk '{print $1}'):${EXPOSE_PORT}"
   else
@@ -288,8 +293,9 @@ riepilogo_finale() {
       echo "    ADMIN_PASSWORD  : $ADMIN_PASSWORD"
       ;;
     nginx-proxy-manager)
-      echo "    ADMIN_EMAIL     : $ADMIN_EMAIL"
-      echo "    ADMIN_PASSWORD  : $ADMIN_PASSWORD"
+      echo "    ADMIN_EMAIL      : $ADMIN_EMAIL"
+      echo "    ADMIN_PASSWORD   : $ADMIN_PASSWORD"
+      echo "    MANAGEMENT_PORT  : $MANAGEMENT_PORT"
       ;;
     outline)
       echo "    SECRET_KEY      : $SECRET_KEY"
@@ -365,8 +371,8 @@ main() {
   # Scelta versione Docker
   chiedi_versione "$APP_VERSION" APP_TAG
 
-  # Modalità esposizione (omada usa porte fisse, non viene chiesta)
-  if [[ "$APP_NAME" == "omada-controller" ]]; then
+  # Modalità esposizione (omada e npm usano porte fisse, non viene chiesta)
+  if [[ "$APP_NAME" == "omada-controller" || "$APP_NAME" == "nginx-proxy-manager" ]]; then
     EXPOSE_MODE="fixed"
     EXPOSE_PORT=""
     EXPOSE_HOSTNAME=""
