@@ -249,10 +249,10 @@ genera_env() {
       ;;
   esac
 
-  # Variabili esposizione
+  # Variabili esposizione (non applicabile per app con porte fisse)
   if [[ "$EXPOSE_MODE" == "porta" ]]; then
     sed_inplace "EXPOSE_PORT" "$EXPOSE_PORT"
-  else
+  elif [[ "$EXPOSE_MODE" == "proxy" ]]; then
     sed_inplace "HOSTNAME" "$EXPOSE_HOSTNAME"
   fi
 }
@@ -271,7 +271,10 @@ riepilogo_finale() {
   echo "  Directory       : $dest"
   echo ""
 
-  if [[ "$EXPOSE_MODE" == "porta" ]]; then
+  if [[ "$app" == "omada-controller" ]]; then
+    echo "  URL di accesso  : http://$(hostname -I | awk '{print $1}'):8088"
+    echo "  URL HTTPS       : https://$(hostname -I | awk '{print $1}'):8043"
+  elif [[ "$EXPOSE_MODE" == "porta" ]]; then
     echo "  URL di accesso  : http://$(hostname -I | awk '{print $1}'):${EXPOSE_PORT}"
   else
     echo "  URL di accesso  : https://${EXPOSE_HOSTNAME}"
@@ -362,8 +365,14 @@ main() {
   # Scelta versione Docker
   chiedi_versione "$APP_VERSION" APP_TAG
 
-  # Modalità esposizione
-  chiedi_esposizione EXPOSE_MODE EXPOSE_PORT EXPOSE_HOSTNAME
+  # Modalità esposizione (omada usa porte fisse, non viene chiesta)
+  if [[ "$APP_NAME" == "omada-controller" ]]; then
+    EXPOSE_MODE="fixed"
+    EXPOSE_PORT=""
+    EXPOSE_HOSTNAME=""
+  else
+    chiedi_esposizione EXPOSE_MODE EXPOSE_PORT EXPOSE_HOSTNAME
+  fi
 
   # Variabili specifiche app
   echo ""
