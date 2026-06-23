@@ -28,18 +28,21 @@ leggi_input() {
 chiedi_password() {
   local label="$1"
   local -n _pw="$2"
+  local pw1="" pw2=""
 
   while true; do
     printf "%s: " "$label"
-    read -rs pw1
+    IFS= read -rs pw1
     echo ""
-    if [[ -z "$pw1" ]]; then
+    pw1="${pw1%$'\r'}"
+    if [[ ${#pw1} -eq 0 ]]; then
       echo "La password non può essere vuota. Riprova."
       continue
     fi
     printf "Conferma %s: " "$label"
-    read -rs pw2
+    IFS= read -rs pw2
     echo ""
+    pw2="${pw2%$'\r'}"
     if [[ "$pw1" == "$pw2" ]]; then
       _pw="$pw1"
       break
