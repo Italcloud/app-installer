@@ -12,7 +12,7 @@ Un singolo comando installa, configura e avvia qualsiasi app con `docker compose
 Scarica ed esegui lo script: ti guida passo per passo.
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/Italcloud/app-installer/master/install.sh | bash
+bash <(wget -qO- https://raw.githubusercontent.com/Italcloud/app-installer/master/install.sh)
 ```
 
 ### App specifica (no menu)
@@ -20,7 +20,7 @@ wget -qO- https://raw.githubusercontent.com/Italcloud/app-installer/master/insta
 Passa il nome dell'app come argomento per saltare il menu di selezione:
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/Italcloud/app-installer/master/install.sh | bash -s -- checkmk
+bash <(wget -qO- https://raw.githubusercontent.com/Italcloud/app-installer/master/install.sh) checkmk
 ```
 
 App disponibili: `zoraxy`, `nginx-proxy-manager`, `outline`, `checkmk`, `omada-controller`, `netbird`, `authentik`
