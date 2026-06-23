@@ -37,8 +37,8 @@ APPS=(
 mostra_banner() {
   echo ""
   echo "╔══════════════════════════════════════════════════════════╗"
-  echo "║          App Installer — Italcloud                      ║"
-  echo "║     Installazione automatica container Docker           ║"
+  echo "║          App Installer — Italcloud                       ║"
+  echo "║     Installazione automatica container Docker            ║"
   echo "╚══════════════════════════════════════════════════════════╝"
   echo ""
 }
@@ -265,7 +265,7 @@ riepilogo_finale() {
 
   echo ""
   echo "╔══════════════════════════════════════════════════════════╗"
-  echo "║                  INSTALLAZIONE COMPLETATA               ║"
+  echo "║                  INSTALLAZIONE COMPLETATA                ║"
   echo "╚══════════════════════════════════════════════════════════╝"
   echo ""
   echo "  App             : $app"
