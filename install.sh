@@ -2,12 +2,14 @@
 set -euo pipefail
 
 # Quando eseguito via "wget | bash" lo stdin è la pipe, non il terminale.
-# Reindirizza subito su /dev/tty per permettere i read interattivi.
-exec < /dev/tty
+# Reindirizza su /dev/tty solo se stdin non è già un terminale interattivo.
+if [[ ! -t 0 ]]; then
+  exec < /dev/tty || { echo "Errore: impossibile aprire il terminale. Esegui lo script direttamente: bash install.sh" >&2; exit 1; }
+fi
 
 # ─── Configurazione ────────────────────────────────────────────────────────────
 REPO_URL="https://raw.githubusercontent.com/Italcloud/app-installer/master"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
 # ─── Librerie ──────────────────────────────────────────────────────────────────
 # Se lo script viene eseguito da remoto (wget | bash), scarica le lib al volo
