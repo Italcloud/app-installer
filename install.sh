@@ -149,7 +149,6 @@ chiedi_variabili_app() {
       esac
       ;;
     checkmk)
-      leggi_input "Nome sito CheckMK" "monitoring" SITE_NAME
       chiedi_password "Password amministratore (utente: cmkadmin)" ADMIN_PASSWORD
       ;;
     omada-controller)
@@ -230,7 +229,6 @@ genera_env() {
       esac
       ;;
     checkmk)
-      sed_inplace "SITE_NAME" "$SITE_NAME"
       sed_inplace "ADMIN_PASSWORD" "$ADMIN_PASSWORD"
       ;;
     netbird)
@@ -306,7 +304,6 @@ riepilogo_finale() {
       echo "    URL             : $OUTLINE_URL"
       ;;
     checkmk)
-      echo "    SITE_NAME       : $SITE_NAME"
       echo "    ADMIN_PASSWORD  : $ADMIN_PASSWORD"
       ;;
     netbird)
