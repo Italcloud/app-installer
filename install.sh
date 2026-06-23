@@ -117,6 +117,7 @@ chiedi_variabili_app() {
   case "$app" in
     zoraxy)
       chiedi_password "Password amministratore Zoraxy" ADMIN_PASSWORD
+      leggi_input "Porta management UI" "8000" MANAGEMENT_PORT
       ;;
     nginx-proxy-manager)
       leggi_input "Email amministratore" "admin@example.com" ADMIN_EMAIL
@@ -204,6 +205,7 @@ genera_env() {
   case "$app" in
     zoraxy)
       sed_inplace "ADMIN_PASSWORD" "$ADMIN_PASSWORD"
+      sed_inplace "MANAGEMENT_PORT" "$MANAGEMENT_PORT"
       ;;
     nginx-proxy-manager)
       sed_inplace "ADMIN_EMAIL" "$ADMIN_EMAIL"
@@ -279,6 +281,9 @@ riepilogo_finale() {
   elif [[ "$app" == "nginx-proxy-manager" ]]; then
     echo "  UI management   : http://$(hostname -I | awk '{print $1}'):${MANAGEMENT_PORT}"
     echo "  Proxy HTTP/S    : porte 80 e 443 (configurabili dall'UI)"
+  elif [[ "$app" == "zoraxy" ]]; then
+    echo "  UI management   : http://$(hostname -I | awk '{print $1}'):${MANAGEMENT_PORT}"
+    echo "  Proxy HTTP/S    : porte 80 e 443 (configurabili dall'UI)"
   elif [[ "$EXPOSE_MODE" == "porta" ]]; then
     echo "  URL di accesso  : http://$(hostname -I | awk '{print $1}'):${EXPOSE_PORT}"
   else
@@ -290,7 +295,8 @@ riepilogo_finale() {
 
   case "$app" in
     zoraxy)
-      echo "    ADMIN_PASSWORD  : $ADMIN_PASSWORD"
+      echo "    ADMIN_PASSWORD   : $ADMIN_PASSWORD"
+      echo "    MANAGEMENT_PORT  : $MANAGEMENT_PORT"
       ;;
     nginx-proxy-manager)
       echo "    ADMIN_EMAIL      : $ADMIN_EMAIL"
@@ -372,7 +378,7 @@ main() {
   chiedi_versione "$APP_VERSION" APP_TAG
 
   # Modalità esposizione (omada e npm usano porte fisse, non viene chiesta)
-  if [[ "$APP_NAME" == "omada-controller" || "$APP_NAME" == "nginx-proxy-manager" ]]; then
+  if [[ "$APP_NAME" == "omada-controller" || "$APP_NAME" == "nginx-proxy-manager" || "$APP_NAME" == "zoraxy" ]]; then
     EXPOSE_MODE="fixed"
     EXPOSE_PORT=""
     EXPOSE_HOSTNAME=""
