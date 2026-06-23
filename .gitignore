@@ -1,0 +1,16 @@
+# File ambiente — escludi i .env compilati, mantieni gli esempi
+.env
+**/.env
+!**/.env.example
+
+# Directory di installazione locale (se clonato nella dir target)
+/opt/
+
+# File temporanei
+*.tmp
+*.swp
+*.bak
+.DS_Store
+
+# Log
+*.log
