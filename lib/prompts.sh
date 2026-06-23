@@ -33,6 +33,10 @@ chiedi_password() {
     printf "%s: " "$label"
     read -rs pw1
     echo ""
+    if [[ -z "$pw1" ]]; then
+      echo "La password non può essere vuota. Riprova."
+      continue
+    fi
     printf "Conferma %s: " "$label"
     read -rs pw2
     echo ""
