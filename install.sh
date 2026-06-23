@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Quando eseguito via "wget | bash" lo stdin è la pipe, non il terminale.
+# Reindirizza subito su /dev/tty per permettere i read interattivi.
+exec < /dev/tty
+
 # ─── Configurazione ────────────────────────────────────────────────────────────
 REPO_URL="https://raw.githubusercontent.com/Italcloud/app-installer/master"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
