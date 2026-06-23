@@ -59,6 +59,27 @@ Modalità esposizione: porta diretta o hostname proxy
 
 Variabili specifiche per app:
 AppVariabili specificheZoraxyADMIN_PASSWORDNginx Proxy ManagerADMIN_EMAIL, ADMIN_PASSWORDOutlineSECRET_KEY (generata auto), UTILS_SECRET (generata auto), SLACK_KEY o altro provider OAuth, URLCheckmkSITE_NAME, ADMIN_PASSWORDOmada Controllernessuna variabile critica, solo porta/hostnameNetBirdNETBIRD_DOMAIN, TURN_PASSWORD (generata auto), COTURN_PASSWORD (generata auto) — con opzione per aggiungere Authentik come OIDCAuthentikPG_PASSWORD (generata auto), AUTHENTIK_SECRET_KEY (generata auto), ADMIN_EMAIL, DOMAIN
+
+Struttura directory di installazione:
+Ogni app viene installata sotto la home dell'utente corrente:
+~/workspace/<nomeapp>/
+├── docker-compose.yml
+└── .env
+I volumi Docker devono risiedere tutti sotto:
+~/workspace/<nomeapp>/data/
+├── config/        # file di configurazione persistenti
+├── db/            # dati database (PostgreSQL, MySQL ecc.)
+├── redis/         # dati Redis
+├── logs/          # log persistenti (se necessario)
+└── storage/       # file uploads, media, blob storage
+Non tutte le cartelle sono necessarie per ogni app — ogni docker-compose.yml monta solo quelle che servono. La variabile INSTALL_DIR non viene più chiesta all'utente ma calcolata automaticamente come $HOME/workspace/<nomeapp>.
+Selezione tag/versione Docker:
+Per ogni app, lo script deve:
+
+Mostrare il tag stabile più recente consigliato (hardcoded in app.conf come APP_VERSION)
+Chiedere all'utente: vuoi usare la versione consigliata (APP_VERSION), latest, oppure inserire un tag manuale?
+La scelta dell'utente viene scritta nel .env come APP_TAG e usata nel docker-compose.yml tramite la variabile ${APP_TAG}
+
 Dettagli tecnici importanti:
 
 Le password/secret con "(generata auto)" devono essere generate con openssl rand -hex 32 e mostrate all'utente nel riepilogo finale
