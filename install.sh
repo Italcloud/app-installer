@@ -116,7 +116,6 @@ chiedi_variabili_app() {
 
   case "$app" in
     zoraxy)
-      chiedi_password "Password amministratore Zoraxy" ADMIN_PASSWORD
       leggi_input "Porta management UI" "8000" MANAGEMENT_PORT
       ;;
     nginx-proxy-manager)
@@ -204,7 +203,6 @@ genera_env() {
 
   case "$app" in
     zoraxy)
-      sed_inplace "ADMIN_PASSWORD" "$ADMIN_PASSWORD"
       sed_inplace "MANAGEMENT_PORT" "$MANAGEMENT_PORT"
       ;;
     nginx-proxy-manager)
@@ -295,7 +293,6 @@ riepilogo_finale() {
 
   case "$app" in
     zoraxy)
-      echo "    ADMIN_PASSWORD   : $ADMIN_PASSWORD"
       echo "    MANAGEMENT_PORT  : $MANAGEMENT_PORT"
       ;;
     nginx-proxy-manager)
