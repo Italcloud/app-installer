@@ -133,6 +133,7 @@ chiedi_variabili_app() {
       leggi_input "URL pubblico di Outline (es. https://docs.example.com)" "" OUTLINE_URL
       echo ""
       echo "Provider di autenticazione:"
+      echo "  0) Nessuno (configura manualmente in seguito)"
       echo "  1) OIDC generico (es. Authentik)"
       echo "  2) Slack"
       echo "  3) Google"
@@ -140,9 +141,13 @@ chiedi_variabili_app() {
       echo "  5) Discord"
       echo ""
       local _auth_choice
+      OAUTH_PROVIDER=""
       while true; do
-        leggi_input "Scegli provider (1-5)" "1" _auth_choice
+        leggi_input "Scegli provider (0-5)" "1" _auth_choice
         case "$_auth_choice" in
+          0)
+            OAUTH_PROVIDER=""
+            break ;;
           1)
             OAUTH_PROVIDER="oidc"
             leggi_input "OIDC Client ID" "" OIDC_CLIENT_ID
@@ -175,7 +180,7 @@ chiedi_variabili_app() {
             chiedi_password "Discord Client Secret" DISCORD_CLIENT_SECRET
             leggi_input "Discord Server ID" "" DISCORD_SERVER_ID
             break ;;
-          *) echo "Scelta non valida. Inserisci un numero tra 1 e 5." ;;
+          *) echo "Scelta non valida. Inserisci un numero tra 0 e 5." ;;
         esac
       done
       echo ""
@@ -184,14 +189,17 @@ chiedi_variabili_app() {
       leggi_input "SMTP Port" "465" SMTP_PORT
       leggi_input "SMTP Username (indirizzo mittente)" "" SMTP_USERNAME
       chiedi_password "SMTP Password" SMTP_PASSWORD
-      leggi_input "SMTP From Email (es. Docs <noreply@example.com>)" "" SMTP_FROM_EMAIL
+      local _smtp_from_default="${OUTLINE_FOLDER_NAME^} <${SMTP_USERNAME}>"
+      leggi_input "SMTP From Email" "$_smtp_from_default" SMTP_FROM_EMAIL
       local _smtp_secure_yn
       leggi_si_no "SMTP usa SSL/TLS?" "s" _smtp_secure_yn
       SMTP_SECURE="$([[ "$_smtp_secure_yn" == "s" ]] && echo true || echo false)"
       leggi_input "SMTP Name (nome servizio)" "Maileroo" SMTP_NAME
       echo ""
-      leggi_input "IP del reverse proxy (PROXY_IP_HEADER, lascia vuoto se non noto)" "" PROXY_IP_HEADER
-      leggi_input "IP privati autorizzati separati da virgola (es. 10.0.0.1,10.0.0.2)" "" ALLOWED_PRIVATE_IP_ADDRESSES
+      local _proxy_ip
+      leggi_input "IP del reverse proxy" "" _proxy_ip
+      PROXY_IP_HEADER="$_proxy_ip"
+      ALLOWED_PRIVATE_IP_ADDRESSES="$_proxy_ip"
       ;;
     checkmk)
       chiedi_password "Password amministratore (utente: cmkadmin)" ADMIN_PASSWORD
@@ -349,6 +357,8 @@ riepilogo_finale() {
   elif [[ "$app" == "zoraxy" ]]; then
     echo "  UI management   : http://$(hostname -I | awk '{print $1}'):${MANAGEMENT_PORT}"
     echo "  Proxy HTTP/S    : porte 80 e 443 (configurabili dall'UI)"
+  elif [[ "$app" == "outline" ]]; then
+    echo "  URL di accesso  : ${OUTLINE_URL}"
   elif [[ "$EXPOSE_MODE" == "porta" ]]; then
     echo "  URL di accesso  : http://$(hostname -I | awk '{print $1}'):${EXPOSE_PORT}"
   else
@@ -436,10 +446,9 @@ main() {
 
   # Directory di installazione
   if [[ "$APP_NAME" == "outline" ]]; then
-    local _folder
     echo ""
-    leggi_input "Nome cartella installazione in ~/workspace (es. docs, wiki)" "outline" _folder
-    INSTALL_DIR="$HOME/workspace/$_folder"
+    leggi_input "Nome cartella installazione in ~/workspace (es. docs, wiki)" "outline" OUTLINE_FOLDER_NAME
+    INSTALL_DIR="$HOME/workspace/$OUTLINE_FOLDER_NAME"
   else
     INSTALL_DIR="$HOME/workspace/$APP_NAME"
   fi
@@ -456,6 +465,10 @@ main() {
   # Modalità esposizione (omada e npm usano porte fisse, non viene chiesta)
   if [[ "$APP_NAME" == "omada-controller" || "$APP_NAME" == "nginx-proxy-manager" || "$APP_NAME" == "zoraxy" ]]; then
     EXPOSE_MODE="fixed"
+    EXPOSE_PORT=""
+    EXPOSE_HOSTNAME=""
+  elif [[ "$APP_NAME" == "outline" ]]; then
+    EXPOSE_MODE="proxy"
     EXPOSE_PORT=""
     EXPOSE_HOSTNAME=""
   else
