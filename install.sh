@@ -29,6 +29,7 @@ APPS=(
   nginx-proxy-manager
   omada-controller
   outline
+  snipe-it
   zoraxy
 )
 
@@ -220,6 +221,43 @@ chiedi_variabili_app() {
       leggi_input "Telegram Chat ID" "" TELEGRAM_CHAT_ID
       leggi_input "Porta SMTP locale" "8025" LISTEN_PORT
       ;;
+    snipe-it)
+      echo "→ Generazione APP_KEY automatica..."
+      SNIPEIT_APP_KEY="base64:$(openssl rand -base64 32)"
+
+      echo "→ Generazione password DB automatica..."
+      SNIPEIT_DB_PASSWORD=$(openssl rand -hex 16)
+      SNIPEIT_DB_ROOT_PASSWORD=$(openssl rand -hex 16)
+
+      if [[ "$EXPOSE_MODE" == "proxy" ]]; then
+        SNIPEIT_APP_URL="https://$EXPOSE_HOSTNAME"
+        leggi_input "IP del reverse proxy (per APP_TRUSTED_PROXIES)" "" SNIPEIT_TRUSTED_PROXIES
+      else
+        local _snipeit_ip
+        _snipeit_ip=$(hostname -I | awk '{print $1}')
+        SNIPEIT_APP_URL="http://${_snipeit_ip}:${EXPOSE_PORT}"
+        SNIPEIT_TRUSTED_PROXIES=""
+      fi
+      echo "  APP_URL: $SNIPEIT_APP_URL"
+
+      echo ""
+      local _configure_mail
+      leggi_si_no "Vuoi configurare l'SMTP?" "n" _configure_mail
+      SNIPEIT_CONFIGURE_MAIL="$_configure_mail"
+      if [[ "$SNIPEIT_CONFIGURE_MAIL" == "s" ]]; then
+        leggi_input "SMTP Host" "" SNIPEIT_MAIL_HOST
+        leggi_input "SMTP Port" "587" SNIPEIT_MAIL_PORT
+        leggi_input "SMTP Username" "" SNIPEIT_MAIL_USERNAME
+        chiedi_password "SMTP Password" SNIPEIT_MAIL_PASSWORD
+        leggi_input "SMTP From Address" "$SNIPEIT_MAIL_USERNAME" SNIPEIT_MAIL_FROM_ADDR
+        leggi_input "SMTP From Name" "Snipe-IT" SNIPEIT_MAIL_FROM_NAME
+        leggi_input "SMTP Reply-To Address" "$SNIPEIT_MAIL_FROM_ADDR" SNIPEIT_MAIL_REPLYTO_ADDR
+        leggi_input "SMTP Reply-To Name" "Snipe-IT" SNIPEIT_MAIL_REPLYTO_NAME
+        local _tls_yn
+        leggi_si_no "Verifica certificato TLS?" "s" _tls_yn
+        SNIPEIT_MAIL_TLS_VERIFY_PEER="$([[ "$_tls_yn" == "s" ]] && echo true || echo false)"
+      fi
+      ;;
   esac
 }
 
@@ -302,6 +340,27 @@ genera_env() {
       ;;
     checkmk)
       sed_inplace "ADMIN_PASSWORD" "$ADMIN_PASSWORD"
+      ;;
+    snipe-it)
+      if [[ "$EXPOSE_MODE" == "porta" ]]; then
+        sed_inplace "APP_PORT" "$EXPOSE_PORT"
+      fi
+      sed_inplace "APP_KEY" "$SNIPEIT_APP_KEY"
+      sed_inplace "APP_URL" "$SNIPEIT_APP_URL"
+      sed_inplace "DB_PASSWORD" "$SNIPEIT_DB_PASSWORD"
+      sed_inplace "MYSQL_ROOT_PASSWORD" "$SNIPEIT_DB_ROOT_PASSWORD"
+      sed_inplace "APP_TRUSTED_PROXIES" "$SNIPEIT_TRUSTED_PROXIES"
+      if [[ "${SNIPEIT_CONFIGURE_MAIL:-n}" == "s" ]]; then
+        sed_inplace "MAIL_HOST" "$SNIPEIT_MAIL_HOST"
+        sed_inplace "MAIL_PORT" "$SNIPEIT_MAIL_PORT"
+        sed_inplace "MAIL_USERNAME" "$SNIPEIT_MAIL_USERNAME"
+        sed_inplace "MAIL_PASSWORD" "$SNIPEIT_MAIL_PASSWORD"
+        sed_inplace "MAIL_FROM_ADDR" "$SNIPEIT_MAIL_FROM_ADDR"
+        sed_inplace "MAIL_FROM_NAME" "$SNIPEIT_MAIL_FROM_NAME"
+        sed_inplace "MAIL_REPLYTO_ADDR" "$SNIPEIT_MAIL_REPLYTO_ADDR"
+        sed_inplace "MAIL_REPLYTO_NAME" "$SNIPEIT_MAIL_REPLYTO_NAME"
+        sed_inplace "MAIL_TLS_VERIFY_PEER" "$SNIPEIT_MAIL_TLS_VERIFY_PEER"
+      fi
       ;;
     mailrise)
       sed_inplace "LISTEN_PORT" "$LISTEN_PORT"
@@ -400,6 +459,15 @@ riepilogo_finale() {
       ;;
     checkmk)
       echo "    ADMIN_PASSWORD  : $ADMIN_PASSWORD"
+      ;;
+    snipe-it)
+      echo "    APP_KEY         : $SNIPEIT_APP_KEY"
+      echo "    APP_URL         : $SNIPEIT_APP_URL"
+      echo "    DB_PASSWORD     : $SNIPEIT_DB_PASSWORD"
+      echo "    DB_ROOT_PW      : $SNIPEIT_DB_ROOT_PASSWORD"
+      if [[ "${SNIPEIT_CONFIGURE_MAIL:-n}" == "s" ]]; then
+        echo "    SMTP            : $SNIPEIT_MAIL_HOST:$SNIPEIT_MAIL_PORT ($SNIPEIT_MAIL_FROM_ADDR)"
+      fi
       ;;
     mailrise)
       echo "    TELEGRAM_BOT_TOKEN : $TELEGRAM_BOT_TOKEN"
