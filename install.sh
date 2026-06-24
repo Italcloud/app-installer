@@ -201,6 +201,14 @@ chiedi_variabili_app() {
       leggi_input "IP del reverse proxy" "" _proxy_ip
       PROXY_IP_HEADER="$_proxy_ip"
       ALLOWED_PRIVATE_IP_ADDRESSES="$_proxy_ip"
+      echo ""
+      leggi_si_no "Vuoi aggiungere il webhook Telegram?" "n" USE_TELEGRAM
+      if [[ "$USE_TELEGRAM" == "s" ]]; then
+        leggi_input "Telegram Bot Token" "" TELEGRAM_BOT_TOKEN
+        leggi_input "Telegram Chat ID" "" TELEGRAM_CHAT_ID
+        leggi_input "Porta locale webhook (default 5000, cambia per evitare conflitti)" "5000" TELEGRAM_WEBHOOK_PORT
+        echo "  → OUTLINE_SIGNING_SECRET e OUTLINE_API_TOKEN vanno compilati dopo il primo avvio."
+      fi
       ;;
     checkmk)
       chiedi_password "Password amministratore (utente: cmkadmin)" ADMIN_PASSWORD
@@ -277,6 +285,11 @@ genera_env() {
       sed_inplace "SMTP_NAME" "$SMTP_NAME"
       sed_inplace "PROXY_IP_HEADER" "${PROXY_IP_HEADER:-}"
       sed_inplace "ALLOWED_PRIVATE_IP_ADDRESSES" "${ALLOWED_PRIVATE_IP_ADDRESSES:-}"
+      if [[ "${USE_TELEGRAM:-n}" == "s" ]]; then
+        sed_inplace "TELEGRAM_BOT_TOKEN" "$TELEGRAM_BOT_TOKEN"
+        sed_inplace "TELEGRAM_CHAT_ID" "$TELEGRAM_CHAT_ID"
+        sed_inplace "TELEGRAM_WEBHOOK_PORT" "$TELEGRAM_WEBHOOK_PORT"
+      fi
       case "${OAUTH_PROVIDER:-}" in
         oidc)
           sed_inplace "OIDC_CLIENT_ID" "$OIDC_CLIENT_ID"
@@ -383,8 +396,22 @@ riepilogo_finale() {
       echo "    URL              : $OUTLINE_URL"
       echo "    SECRET_KEY       : $SECRET_KEY"
       echo "    UTILS_SECRET     : $UTILS_SECRET"
-      echo "    Auth provider    : ${OAUTH_PROVIDER:-}"
+      echo "    Auth provider    : ${OAUTH_PROVIDER:-nessuno}"
       echo "    SMTP             : $SMTP_HOST:$SMTP_PORT (${SMTP_USERNAME})"
+      if [[ "${USE_TELEGRAM:-n}" == "s" ]]; then
+        echo ""
+        echo "    Webhook Telegram (porta ${TELEGRAM_WEBHOOK_PORT}):"
+        echo "    TELEGRAM_BOT_TOKEN  : $TELEGRAM_BOT_TOKEN"
+        echo "    TELEGRAM_CHAT_ID    : $TELEGRAM_CHAT_ID"
+        echo ""
+        echo "    Passi da completare dopo il primo avvio di Outline:"
+        echo "    1) Settings → Workspace → Webhooks → New webhook"
+        echo "       URL: https://<dominio-webhook>/webhook"
+        echo "       Copia 'Signing secret' → OUTLINE_SIGNING_SECRET nel .env"
+        echo "    2) (opzionale) Settings → Account → API → New token"
+        echo "       Copia il token → OUTLINE_API_TOKEN nel .env"
+        echo "    3) Riavvia: cd $dest && docker compose up -d"
+      fi
       ;;
     checkmk)
       echo "    ADMIN_PASSWORD  : $ADMIN_PASSWORD"
@@ -486,6 +513,28 @@ main() {
   echo ""
   echo "==> Download file dal repository..."
   scarica_file_app "$APP_NAME" "$INSTALL_DIR"
+
+  # Per outline: aggiungi servizio telegram webhook se richiesto
+  if [[ "$APP_NAME" == "outline" && "${USE_TELEGRAM:-n}" == "s" ]]; then
+    cat >> "$INSTALL_DIR/docker-compose.yml" << 'EOFYAML'
+
+  outline-telegram-webhook:
+    image: wtrucci/outline-telegram:latest
+    container_name: outline-telegram-webhook
+    restart: unless-stopped
+    ports:
+      - "${TELEGRAM_WEBHOOK_PORT:-5000}:3000"
+    env_file:
+      - .env
+    environment:
+      OUTLINE_SIGNING_SECRET: ${OUTLINE_SIGNING_SECRET}
+      OUTLINE_API_TOKEN: ${OUTLINE_API_TOKEN}
+      OUTLINE_URL: ${URL}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+EOFYAML
+    echo "  → Servizio outline-telegram-webhook aggiunto al compose"
+  fi
 
   # Genera .env
   echo ""
