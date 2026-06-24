@@ -41,11 +41,19 @@ app-installer/
 │   │   ├── docker-compose.yml
 │   │   ├── .env.example
 │   │   └── app.conf
-│   └── mailrise/
+│   ├── mailrise/
+│   │   ├── docker-compose.yml
+│   │   ├── .env.example
+│   │   ├── app.conf
+│   │   └── mailrise.conf.example  # template configurazione alias notifiche
+│   ├── snipe-it/
+│   │   ├── docker-compose.yml  # include MariaDB
+│   │   ├── .env.example
+│   │   └── app.conf
+│   └── unimus/
 │       ├── docker-compose.yml
 │       ├── .env.example
-│       ├── app.conf
-│       └── mailrise.conf.example  # template configurazione alias notifiche
+│       └── app.conf
 └── .gitignore
 ```
 
@@ -99,6 +107,7 @@ Alcune app hanno **porte fisse** — skip automatico della domanda su esposizion
 | `nginx-proxy-manager` | porte 80/443 fisse + management port configurabile |
 | `zoraxy` | porte 80/443 fisse + management port configurabile |
 | `mailrise` | porta SMTP fissa (default 8025, configurabile) |
+| `unimus` | solo porta diretta (default 8085, configurabile) |
 | `outline` | sempre reverse proxy — chiede solo la porta locale (per multi-istanza) |
 
 Tutte le altre app chiedono: porta diretta (chiede numero porta) o reverse proxy (chiede hostname).
@@ -113,6 +122,8 @@ Tutte le altre app chiedono: porta diretta (chiede numero porta) o reverse proxy
 | **Checkmk** | `ADMIN_PASSWORD` | Sito hardcoded come `cmk` |
 | **Omada Controller** | nessuna | Solo porte standard |
 | **Mailrise** | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `LISTEN_PORT` | Genera `mailrise.conf` dai placeholder |
+| **Snipe-IT** | `APP_PORT` (porta), SMTP opzionale | `APP_KEY` generata automaticamente; password MariaDB generate automaticamente; `APP_URL` costruita automaticamente da IP/hostname; `APP_TRUSTED_PROXIES` chiesto solo in modalità proxy |
+| **Unimus** | `APP_PORT` | Solo porta; credenziali configurate via web UI al primo accesso |
 
 ### Outline — flusso dettagliato
 

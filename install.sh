@@ -212,6 +212,7 @@ chiedi_variabili_app() {
       fi
       ;;
     checkmk)
+      leggi_input "Porta web UI" "8080" CHECKMK_PORT
       chiedi_password "Password amministratore (utente: cmkadmin)" ADMIN_PASSWORD
       ;;
     omada-controller)
@@ -343,6 +344,7 @@ genera_env() {
       esac
       ;;
     checkmk)
+      sed_inplace "EXPOSE_PORT" "$CHECKMK_PORT"
       sed_inplace "ADMIN_PASSWORD" "$ADMIN_PASSWORD"
       ;;
     unimus)
@@ -427,6 +429,8 @@ riepilogo_finale() {
     echo "  SMTP endpoint   : $(hostname -I | awk '{print $1}'):${LISTEN_PORT}"
   elif [[ "$app" == "unimus" ]]; then
     echo "  URL di accesso  : http://$(hostname -I | awk '{print $1}'):${UNIMUS_PORT}"
+  elif [[ "$app" == "checkmk" ]]; then
+    echo "  URL di accesso  : http://$(hostname -I | awk '{print $1}'):${CHECKMK_PORT}/cmk"
   elif [[ "$EXPOSE_MODE" == "porta" ]]; then
     echo "  URL di accesso  : http://$(hostname -I | awk '{print $1}'):${EXPOSE_PORT}"
   else
@@ -434,7 +438,7 @@ riepilogo_finale() {
   fi
 
   echo ""
-  echo "  Credenziali e segreti generati:"
+  echo "  Credenziali e token generati:"
 
   case "$app" in
     zoraxy)
@@ -467,7 +471,9 @@ riepilogo_finale() {
       fi
       ;;
     checkmk)
+      echo "    Username        : cmkadmin"
       echo "    ADMIN_PASSWORD  : $ADMIN_PASSWORD"
+      echo "    Porta web UI    : $CHECKMK_PORT"
       ;;
     unimus)
       echo "    Porta web UI    : $UNIMUS_PORT"
@@ -559,7 +565,7 @@ main() {
   chiedi_versione "$APP_VERSION" APP_TAG
 
   # Modalità esposizione (omada e npm usano porte fisse, non viene chiesta)
-  if [[ "$APP_NAME" == "omada-controller" || "$APP_NAME" == "nginx-proxy-manager" || "$APP_NAME" == "zoraxy" || "$APP_NAME" == "mailrise" || "$APP_NAME" == "unimus" ]]; then
+  if [[ "$APP_NAME" == "omada-controller" || "$APP_NAME" == "nginx-proxy-manager" || "$APP_NAME" == "zoraxy" || "$APP_NAME" == "mailrise" || "$APP_NAME" == "unimus" || "$APP_NAME" == "checkmk" ]]; then
     EXPOSE_MODE="fixed"
     EXPOSE_PORT=""
     EXPOSE_HOSTNAME=""

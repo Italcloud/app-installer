@@ -23,7 +23,7 @@ Passa il nome dell'app come argomento per saltare il menu di selezione:
 bash <(wget -qO- https://raw.githubusercontent.com/Italcloud/app-installer/master/install.sh) checkmk
 ```
 
-App disponibili: `checkmk`, `mailrise`, `nginx-proxy-manager`, `omada-controller`, `outline`, `zoraxy`
+App disponibili: `checkmk`, `mailrise`, `nginx-proxy-manager`, `omada-controller`, `outline`, `snipe-it`, `unimus`, `zoraxy`
 
 ### Se hai già clonato il repo
 
@@ -73,6 +73,7 @@ I file vengono installati in:
 | `nginx-proxy-manager` | Porte 80/443 fisse + management port configurabile |
 | `zoraxy` | Porte 80/443 fisse + management port configurabile |
 | `mailrise` | Porta SMTP fissa (default 8025, configurabile) |
+| `unimus` | Solo porta diretta (default 8085, configurabile) |
 | `outline` | Sempre reverse proxy — chiede solo la porta locale (per multi-istanza) |
 | Altre app | Chiede: porta diretta o reverse proxy |
 
@@ -107,6 +108,8 @@ Sistema operativo supportato: Debian 12/13, Ubuntu 22.04+
 | `nginx-proxy-manager` | Gestione reverse proxy Nginx con UI web | 2.15.1 | Porte 80/443 fisse |
 | `omada-controller` | Controller per access point TP-Link Omada | 6.2 | `network_mode: host` |
 | `outline` | Wiki e knowledge base collaborativa | 1.8.1 | Include PostgreSQL e Redis; webhook Telegram opzionale |
+| `snipe-it` | Gestione asset IT | v8.6.2 | Include MariaDB; SMTP opzionale |
+| `unimus` | Backup e gestione configurazioni di rete | latest | Solo porta diretta |
 | `zoraxy` | Reverse proxy con UI web semplificata | 3.2.5r2 | Porte 80/443 fisse |
 
 ---
@@ -130,6 +133,8 @@ app-installer/
     ├── nginx-proxy-manager/
     ├── omada-controller/
     ├── outline/
+    ├── snipe-it/
+    ├── unimus/
     └── zoraxy/
         (ogni app contiene: app.conf, docker-compose.yml, .env.example)
 ```
