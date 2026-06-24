@@ -23,7 +23,7 @@ Passa il nome dell'app come argomento per saltare il menu di selezione:
 bash <(wget -qO- https://raw.githubusercontent.com/Italcloud/app-installer/master/install.sh) checkmk
 ```
 
-App disponibili: `authentik`, `checkmk`, `mailrise`, `netbird`, `nginx-proxy-manager`, `omada-controller`, `outline`, `zoraxy`
+App disponibili: `checkmk`, `mailrise`, `nginx-proxy-manager`, `omada-controller`, `outline`, `zoraxy`
 
 ### Se hai già clonato il repo
 
@@ -102,10 +102,8 @@ Sistema operativo supportato: Debian 12/13, Ubuntu 22.04+
 
 | App | Descrizione | Versione stabile | Note |
 |-----|-------------|-----------------|------|
-| `authentik` | Piattaforma di identity e SSO self-hosted | 2026.5.3 | Include PostgreSQL e Redis |
 | `checkmk` | Piattaforma di monitoraggio IT | 2.4.0p32 | — |
 | `mailrise` | Gateway SMTP → notifiche Telegram/Apprise | latest | Rete Docker `monitoring` |
-| `netbird` | VPN mesh peer-to-peer con gestione centralizzata | 0.73.2 | Authentik opzionale (OIDC) |
 | `nginx-proxy-manager` | Gestione reverse proxy Nginx con UI web | 2.15.1 | Porte 80/443 fisse |
 | `omada-controller` | Controller per access point TP-Link Omada | 6.2 | `network_mode: host` |
 | `outline` | Wiki e knowledge base collaborativa | 1.8.1 | Include PostgreSQL e Redis; webhook Telegram opzionale |
@@ -123,14 +121,12 @@ app-installer/
 │   ├── prompts.sh          # Input utente interattivo
 │   └── deploy.sh           # Docker Compose deploy + health check
 └── apps/
-    ├── authentik/
     ├── checkmk/
     ├── mailrise/
     │   ├── app.conf
     │   ├── docker-compose.yml
     │   ├── .env.example
     │   └── mailrise.conf.example   # Template alias notifiche (modificabile post-installazione)
-    ├── netbird/
     ├── nginx-proxy-manager/
     ├── omada-controller/
     ├── outline/

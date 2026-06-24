@@ -24,10 +24,8 @@ fi
 
 # ─── App disponibili ───────────────────────────────────────────────────────────
 APPS=(
-  authentik
   checkmk
   mailrise
-  netbird
   nginx-proxy-manager
   omada-controller
   outline
@@ -222,28 +220,6 @@ chiedi_variabili_app() {
       leggi_input "Telegram Chat ID" "" TELEGRAM_CHAT_ID
       leggi_input "Porta SMTP locale" "8025" LISTEN_PORT
       ;;
-    netbird)
-      leggi_input "Dominio pubblico NetBird (es. nb.example.com)" "" NETBIRD_DOMAIN
-      echo "→ Generazione password TURN automatica..."
-      TURN_PASSWORD=$(genera_secret)
-      echo "   TURN_PASSWORD : $TURN_PASSWORD"
-      echo ""
-      leggi_si_no "Vuoi configurare Authentik come provider OIDC?" "s" USE_AUTHENTIK
-      if [[ "$USE_AUTHENTIK" == "s" ]]; then
-        leggi_input "URL Authentik (es. https://auth.example.com)" "" AUTHENTIK_URL
-        leggi_input "OIDC Client ID" "" OIDC_CLIENT_ID
-        chiedi_password "OIDC Client Secret" OIDC_CLIENT_SECRET
-      fi
-      ;;
-    authentik)
-      echo "→ Generazione segreti automatica..."
-      PG_PASSWORD=$(genera_secret)
-      AUTHENTIK_SECRET_KEY=$(genera_secret)
-      echo "   PG_PASSWORD           : $PG_PASSWORD"
-      echo "   AUTHENTIK_SECRET_KEY  : $AUTHENTIK_SECRET_KEY"
-      leggi_input "Email amministratore Authentik" "admin@example.com" ADMIN_EMAIL
-      leggi_input "Dominio pubblico Authentik (es. auth.example.com)" "" DOMAIN
-      ;;
   esac
 }
 
@@ -326,52 +302,6 @@ genera_env() {
       ;;
     checkmk)
       sed_inplace "ADMIN_PASSWORD" "$ADMIN_PASSWORD"
-      ;;
-    netbird)
-      sed_inplace "NETBIRD_DOMAIN" "$NETBIRD_DOMAIN"
-      sed_inplace "TURN_PASSWORD" "$TURN_PASSWORD"
-      sed_inplace "OIDC_CLIENT_ID" "${OIDC_CLIENT_ID:-}"
-      sed_inplace "OIDC_CLIENT_SECRET" "${OIDC_CLIENT_SECRET:-}"
-      sed_inplace "AUTHENTIK_URL" "${AUTHENTIK_URL:-}"
-
-      # Genera management.json
-      local _mgmt_src
-      if [[ -f "$SCRIPT_DIR/apps/netbird/management.json.example" ]]; then
-        _mgmt_src="$SCRIPT_DIR/apps/netbird/management.json.example"
-      else
-        _mgmt_src="$(mktemp)"
-        curl -fsSL "$REPO_URL/apps/netbird/management.json.example" -o "$_mgmt_src"
-      fi
-      cp "$_mgmt_src" "$dest/management.json"
-      local _esc_domain _esc_turn _esc_oidc_id _esc_oidc_secret _esc_auth_url
-      _esc_domain=$(printf '%s\n' "$NETBIRD_DOMAIN" | sed 's/[&/\\]/\\&/g')
-      _esc_turn=$(printf '%s\n' "$TURN_PASSWORD" | sed 's/[&/\\]/\\&/g')
-      _esc_oidc_id=$(printf '%s\n' "${OIDC_CLIENT_ID:-}" | sed 's/[&/\\]/\\&/g')
-      _esc_oidc_secret=$(printf '%s\n' "${OIDC_CLIENT_SECRET:-}" | sed 's/[&/\\]/\\&/g')
-      _esc_auth_url=$(printf '%s\n' "${AUTHENTIK_URL:-}" | sed 's/[&/\\]/\\&/g')
-      sed -i "s|NETBIRD_DOMAIN_PLACEHOLDER|${_esc_domain}|g" "$dest/management.json"
-      sed -i "s|TURN_PASSWORD_PLACEHOLDER|${_esc_turn}|g" "$dest/management.json"
-      sed -i "s|OIDC_CLIENT_ID_PLACEHOLDER|${_esc_oidc_id}|g" "$dest/management.json"
-      sed -i "s|OIDC_CLIENT_SECRET_PLACEHOLDER|${_esc_oidc_secret}|g" "$dest/management.json"
-      sed -i "s|AUTHENTIK_URL_PLACEHOLDER|${_esc_auth_url}|g" "$dest/management.json"
-
-      # Genera turnserver.conf
-      local _turn_src
-      if [[ -f "$SCRIPT_DIR/apps/netbird/turnserver.conf.example" ]]; then
-        _turn_src="$SCRIPT_DIR/apps/netbird/turnserver.conf.example"
-      else
-        _turn_src="$(mktemp)"
-        curl -fsSL "$REPO_URL/apps/netbird/turnserver.conf.example" -o "$_turn_src"
-      fi
-      cp "$_turn_src" "$dest/turnserver.conf"
-      sed -i "s|TURN_PASSWORD_PLACEHOLDER|${_esc_turn}|g" "$dest/turnserver.conf"
-      echo "  → management.json e turnserver.conf generati"
-      ;;
-    authentik)
-      sed_inplace "PG_PASSWORD" "$PG_PASSWORD"
-      sed_inplace "AUTHENTIK_SECRET_KEY" "$AUTHENTIK_SECRET_KEY"
-      sed_inplace "ADMIN_EMAIL" "$ADMIN_EMAIL"
-      sed_inplace "DOMAIN" "$DOMAIN"
       ;;
     mailrise)
       sed_inplace "LISTEN_PORT" "$LISTEN_PORT"
@@ -470,24 +400,6 @@ riepilogo_finale() {
       ;;
     checkmk)
       echo "    ADMIN_PASSWORD  : $ADMIN_PASSWORD"
-      ;;
-    netbird)
-      echo "    NETBIRD_DOMAIN  : $NETBIRD_DOMAIN"
-      echo "    TURN_PASSWORD   : $TURN_PASSWORD"
-      if [[ "${USE_AUTHENTIK:-n}" == "s" ]]; then
-        echo "    AUTHENTIK_URL   : $AUTHENTIK_URL"
-        echo "    OIDC_CLIENT_ID  : $OIDC_CLIENT_ID"
-      fi
-      echo ""
-      echo "    File di configurazione generati:"
-      echo "      $dest/management.json  (STUN/TURN + OIDC)"
-      echo "      $dest/turnserver.conf  (credenziali coturn)"
-      ;;
-    authentik)
-      echo "    PG_PASSWORD          : $PG_PASSWORD"
-      echo "    AUTHENTIK_SECRET_KEY : $AUTHENTIK_SECRET_KEY"
-      echo "    ADMIN_EMAIL          : $ADMIN_EMAIL"
-      echo "    DOMAIN               : $DOMAIN"
       ;;
     mailrise)
       echo "    TELEGRAM_BOT_TOKEN : $TELEGRAM_BOT_TOKEN"

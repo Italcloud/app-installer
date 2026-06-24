@@ -41,14 +41,6 @@ app-installer/
 │   │   ├── docker-compose.yml
 │   │   ├── .env.example
 │   │   └── app.conf
-│   ├── netbird/
-│   │   ├── docker-compose.yml
-│   │   ├── .env.example
-│   │   └── app.conf
-│   ├── authentik/
-│   │   ├── docker-compose.yml  # include PostgreSQL e Redis
-│   │   ├── .env.example
-│   │   └── app.conf
 │   └── mailrise/
 │       ├── docker-compose.yml
 │       ├── .env.example
@@ -120,8 +112,6 @@ Tutte le altre app chiedono: porta diretta (chiede numero porta) o reverse proxy
 | **Outline** | Vedi sezione dedicata | Molte variabili, flusso complesso |
 | **Checkmk** | `ADMIN_PASSWORD` | Sito hardcoded come `cmk` |
 | **Omada Controller** | nessuna | Solo porte standard |
-| **NetBird** | `NETBIRD_DOMAIN`, `TURN_PASSWORD` (auto), `COTURN_PASSWORD` (auto) | Opzione Authentik come OIDC |
-| **Authentik** | `PG_PASSWORD` (auto), `AUTHENTIK_SECRET_KEY` (auto), `ADMIN_EMAIL`, `DOMAIN` | |
 | **Mailrise** | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `LISTEN_PORT` | Genera `mailrise.conf` dai placeholder |
 
 ### Outline — flusso dettagliato
