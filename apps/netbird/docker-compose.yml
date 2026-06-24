@@ -4,7 +4,7 @@ services:
     container_name: netbird-signal
     restart: unless-stopped
     volumes:
-      - ${INSTALL_DIR}/data/config/signal:/var/lib/netbird
+      - ./data/signal:/var/lib/netbird
 
   management:
     image: netbirdio/management:${APP_TAG}
@@ -13,8 +13,8 @@ services:
     depends_on:
       - signal
     volumes:
-      - ${INSTALL_DIR}/data/config/management:/var/lib/netbird
-      - ${INSTALL_DIR}/data/config/management.json:/etc/netbird/management.json:ro
+      - ./data/management:/var/lib/netbird
+      - ./management.json:/etc/netbird/management.json:ro
     command: [
       "--port", "80",
       "--log-file", "console",
@@ -24,7 +24,7 @@ services:
     ]
 
   dashboard:
-    image: netbirdio/dashboard:v2.4.1
+    image: netbirdio/dashboard:${DASHBOARD_TAG}
     container_name: netbird-dashboard
     restart: unless-stopped
     ports:
@@ -32,8 +32,8 @@ services:
       - "80:80"
     environment:
       - AUTH_SUPPORTED_SCOPES=openid profile email offline_access api
-      - AUTH_AUDIENCE=${OIDC_CLIENT_ID:-netbird}
-      - AUTH_AUTHORITY=${AUTHENTIK_URL:-}/application/o/netbird/
+      - AUTH_AUDIENCE=${OIDC_CLIENT_ID}
+      - AUTH_AUTHORITY=${AUTHENTIK_URL}/application/o/netbird/
       - NETBIRD_MGMT_API_ENDPOINT=https://${NETBIRD_DOMAIN}:443
       - NETBIRD_MGMT_GRPC_API_ENDPOINT=https://${NETBIRD_DOMAIN}:443
 
@@ -43,4 +43,4 @@ services:
     restart: unless-stopped
     network_mode: host
     volumes:
-      - ${INSTALL_DIR}/data/config/turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
