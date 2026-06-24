@@ -30,6 +30,7 @@ APPS=(
   omada-controller
   outline
   snipe-it
+  unimus
   zoraxy
 )
 
@@ -221,6 +222,9 @@ chiedi_variabili_app() {
       leggi_input "Telegram Chat ID" "" TELEGRAM_CHAT_ID
       leggi_input "Porta SMTP locale" "8025" LISTEN_PORT
       ;;
+    unimus)
+      leggi_input "Porta web UI" "8085" UNIMUS_PORT
+      ;;
     snipe-it)
       echo "→ Generazione APP_KEY automatica..."
       SNIPEIT_APP_KEY="base64:$(openssl rand -base64 32)"
@@ -341,6 +345,9 @@ genera_env() {
     checkmk)
       sed_inplace "ADMIN_PASSWORD" "$ADMIN_PASSWORD"
       ;;
+    unimus)
+      sed_inplace "APP_PORT" "$UNIMUS_PORT"
+      ;;
     snipe-it)
       if [[ "$EXPOSE_MODE" == "porta" ]]; then
         sed_inplace "APP_PORT" "$EXPOSE_PORT"
@@ -418,6 +425,8 @@ riepilogo_finale() {
     echo "  URL di accesso  : ${OUTLINE_URL}"
   elif [[ "$app" == "mailrise" ]]; then
     echo "  SMTP endpoint   : $(hostname -I | awk '{print $1}'):${LISTEN_PORT}"
+  elif [[ "$app" == "unimus" ]]; then
+    echo "  URL di accesso  : http://$(hostname -I | awk '{print $1}'):${UNIMUS_PORT}"
   elif [[ "$EXPOSE_MODE" == "porta" ]]; then
     echo "  URL di accesso  : http://$(hostname -I | awk '{print $1}'):${EXPOSE_PORT}"
   else
@@ -459,6 +468,10 @@ riepilogo_finale() {
       ;;
     checkmk)
       echo "    ADMIN_PASSWORD  : $ADMIN_PASSWORD"
+      ;;
+    unimus)
+      echo "    Porta web UI    : $UNIMUS_PORT"
+      echo "    (credenziali configurate via web UI al primo accesso)"
       ;;
     snipe-it)
       echo "    APP_KEY         : $SNIPEIT_APP_KEY"
@@ -546,7 +559,7 @@ main() {
   chiedi_versione "$APP_VERSION" APP_TAG
 
   # Modalità esposizione (omada e npm usano porte fisse, non viene chiesta)
-  if [[ "$APP_NAME" == "omada-controller" || "$APP_NAME" == "nginx-proxy-manager" || "$APP_NAME" == "zoraxy" || "$APP_NAME" == "mailrise" ]]; then
+  if [[ "$APP_NAME" == "omada-controller" || "$APP_NAME" == "nginx-proxy-manager" || "$APP_NAME" == "zoraxy" || "$APP_NAME" == "mailrise" || "$APP_NAME" == "unimus" ]]; then
     EXPOSE_MODE="fixed"
     EXPOSE_PORT=""
     EXPOSE_HOSTNAME=""
