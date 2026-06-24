@@ -1,13 +1,23 @@
-Crea la struttura completa di un repo GitHub per uno script di installazione automatica di container Docker. Il progetto si chiama app-installer.
-Concetto generale:
+# app-installer — Documentazione di progetto
 
-L'utente scarica un singolo install.sh con wget e lo esegue. Lo script mostra un menu interattivo con le app disponibili, chiede le variabili necessarie, scarica i file dal repo GitHub e fa docker compose up -d.
-Struttura repo da creare:
-docker-installer/
+## Concetto generale
+
+L'utente scarica un singolo `install.sh` ed lo esegue con:
+```bash
+bash <(wget -qO- https://raw.githubusercontent.com/Italcloud/app-installer/master/install.sh)
+```
+Lo script mostra un menu interattivo con le app disponibili, chiede le variabili necessarie, scarica i file dal repo GitHub e fa `docker compose up -d`.
+
+> **Importante**: usare `bash <(wget -qO- URL)` e non `wget | bash`. Il pipe crea un conflitto su stdin che impedisce l'input interattivo.
+
+## Struttura repo
+
+```
+app-installer/
 ├── install.sh                  # orchestratore principale
 ├── README.md
 ├── lib/
-│   ├── checks.sh               # verifica prerequisiti (docker, docker compose, curl, wget)
+│   ├── checks.sh               # verifica prerequisiti (docker, docker compose, curl, wget, openssl)
 │   ├── prompts.sh              # funzioni input utente (read con default, password nascosta, validazione)
 │   └── deploy.sh               # funzioni docker compose (pull, up, health check)
 ├── apps/
@@ -35,59 +45,115 @@ docker-installer/
 │   │   ├── docker-compose.yml
 │   │   ├── .env.example
 │   │   └── app.conf
-│   └── authentik/
-│       ├── docker-compose.yml  # include PostgreSQL e Redis
+│   ├── authentik/
+│   │   ├── docker-compose.yml  # include PostgreSQL e Redis
+│   │   ├── .env.example
+│   │   └── app.conf
+│   └── mailrise/
+│       ├── docker-compose.yml
 │       ├── .env.example
-│       └── app.conf
+│       ├── app.conf
+│       └── mailrise.conf.example  # template configurazione alias notifiche
 └── .gitignore
-Comportamento install.sh:
+```
 
-Verifica prerequisiti (docker, docker compose plugin, curl, wget) — esce con errore chiaro se mancano
-Può ricevere il nome app come argomento (bash install.sh checkmk) oppure mostrare menu interattivo
-Legge app.conf dell'app scelta per sapere quali variabili chiedere
-Scarica docker-compose.yml e .env.example dal repo GitHub (raw.githubusercontent.com)
-Chiede all'utente le variabili, genera il file .env compilato
-Per ogni app chiede: vuoi esporre su porta diretta (chiede numero porta) o tramite reverse proxy (chiede hostname/dominio)?
-Esegue docker compose up -d
-Verifica che i container siano running con health check post-deploy
-Stampa riepilogo finale: URL di accesso, credenziali inserite, path di installazione
+## Comportamento install.sh
 
-Variabili comuni a tutte le app (gestite da prompts.sh):
+1. Verifica prerequisiti (docker, docker compose plugin v2, curl, wget, openssl)
+2. Può ricevere il nome app come argomento (`bash install.sh checkmk`) oppure mostrare menu interattivo
+3. Carica `app.conf` dell'app scelta
+4. Calcola `INSTALL_DIR` automaticamente (vedi sezione directory)
+5. Chiede la versione Docker (consigliata / latest / manuale)
+6. Per le app che lo prevedono, chiede la modalità di esposizione (porta diretta o reverse proxy)
+7. Chiede le variabili specifiche dell'app
+8. Scarica `docker-compose.yml` e `.env.example` dal repo GitHub
+9. Genera il file `.env` compilato
+10. Esegue `docker compose up -d`
+11. Verifica che i container siano running con health check post-deploy
+12. Stampa riepilogo finale: URL di accesso, credenziali inserite, path di installazione
 
-INSTALL_DIR — directory di installazione (default: /opt/docker/<nomeapp>)
-Modalità esposizione: porta diretta o hostname proxy
+## Directory di installazione
 
-Variabili specifiche per app:
-AppVariabili specificheZoraxyADMIN_PASSWORDNginx Proxy ManagerADMIN_EMAIL, ADMIN_PASSWORDOutlineSECRET_KEY (generata auto), UTILS_SECRET (generata auto), SLACK_KEY o altro provider OAuth, URLCheckmkSITE_NAME, ADMIN_PASSWORDOmada Controllernessuna variabile critica, solo porta/hostnameNetBirdNETBIRD_DOMAIN, TURN_PASSWORD (generata auto), COTURN_PASSWORD (generata auto) — con opzione per aggiungere Authentik come OIDCAuthentikPG_PASSWORD (generata auto), AUTHENTIK_SECRET_KEY (generata auto), ADMIN_EMAIL, DOMAIN
-
-Struttura directory di installazione:
-Ogni app viene installata sotto la home dell'utente corrente:
+`INSTALL_DIR` è calcolata automaticamente — non viene chiesta all'utente:
+```
 ~/workspace/<nomeapp>/
 ├── docker-compose.yml
-└── .env
-I volumi Docker devono risiedere tutti sotto:
-~/workspace/<nomeapp>/data/
-├── config/        # file di configurazione persistenti
-├── db/            # dati database (PostgreSQL, MySQL ecc.)
-├── redis/         # dati Redis
-├── logs/          # log persistenti (se necessario)
-└── storage/       # file uploads, media, blob storage
-Non tutte le cartelle sono necessarie per ogni app — ogni docker-compose.yml monta solo quelle che servono. La variabile INSTALL_DIR non viene più chiesta all'utente ma calcolata automaticamente come $HOME/workspace/<nomeapp>.
-Selezione tag/versione Docker:
-Per ogni app, lo script deve:
+├── .env
+└── data/
+    ├── config/     # file di configurazione persistenti
+    ├── db/         # dati database (PostgreSQL, MySQL ecc.)
+    ├── redis/      # dati Redis
+    ├── logs/       # log persistenti
+    └── storage/    # file uploads, media, blob storage
+```
+Non tutte le sottocartelle sono necessarie — ogni `docker-compose.yml` monta solo quelle che servono e usa path relativi (`./data/...`).
 
-Mostrare il tag stabile più recente consigliato (hardcoded in app.conf come APP_VERSION)
-Chiedere all'utente: vuoi usare la versione consigliata (APP_VERSION), latest, oppure inserire un tag manuale?
-La scelta dell'utente viene scritta nel .env come APP_TAG e usata nel docker-compose.yml tramite la variabile ${APP_TAG}
+**Eccezione — Outline**: il nome cartella è dinamico e viene chiesto durante l'installazione (es. `docs`, `wiki`). `INSTALL_DIR` diventa `~/workspace/<nome-scelto>/`.
 
-Dettagli tecnici importanti:
+## Selezione tag/versione Docker
 
-Le password/secret con "(generata auto)" devono essere generate con openssl rand -hex 32 e mostrate all'utente nel riepilogo finale
-Il file app.conf è in formato KEY=value bash-sourceable e contiene: APP_NAME, APP_DESCRIPTION, APP_VERSION (tag Docker da usare), REQUIRES (dipendenze opzionali, es. authentik per netbird)
-Il repo GitHub è https://github.com/Italcloud/app-installer — usa un placeholder REPO_URL configurabile in testa a install.sh
-Usa docker compose (plugin v2), non docker-compose (v1)
-I compose devono usare immagini stabili con tag specifico, non latest
-Tutto il testo interattivo in italiano
-Lo script deve funzionare su Debian 13 con bash
-Aggiungi set -euo pipefail in testa agli script per sicurezza
-Il .gitignore deve escludere file .env ma non .env.example
+Per ogni app, lo script:
+1. Mostra il tag stabile consigliato (hardcoded in `app.conf` come `APP_VERSION`)
+2. Chiede: versione consigliata / `latest` / tag manuale
+3. Scrive la scelta nel `.env` come `APP_TAG`, usato nel `docker-compose.yml` tramite `${APP_TAG}`
+
+## Modalità di esposizione
+
+Alcune app hanno **porte fisse** — skip automatico della domanda su esposizione:
+
+| App | Comportamento |
+|-----|--------------|
+| `omada-controller` | porte fisse, `network_mode: host` |
+| `nginx-proxy-manager` | porte 80/443 fisse + management port configurabile |
+| `zoraxy` | porte 80/443 fisse + management port configurabile |
+| `mailrise` | porta SMTP fissa (default 8025, configurabile) |
+| `outline` | sempre reverse proxy — chiede solo la porta locale (per multi-istanza) |
+
+Tutte le altre app chiedono: porta diretta (chiede numero porta) o reverse proxy (chiede hostname).
+
+## Variabili specifiche per app
+
+| App | Variabili chieste | Note |
+|-----|-------------------|------|
+| **Zoraxy** | `MANAGEMENT_PORT` | Nessuna password — configurata via web UI al primo accesso |
+| **Nginx Proxy Manager** | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `MANAGEMENT_PORT` | |
+| **Outline** | Vedi sezione dedicata | Molte variabili, flusso complesso |
+| **Checkmk** | `ADMIN_PASSWORD` | Sito hardcoded come `cmk` |
+| **Omada Controller** | nessuna | Solo porte standard |
+| **NetBird** | `NETBIRD_DOMAIN`, `TURN_PASSWORD` (auto), `COTURN_PASSWORD` (auto) | Opzione Authentik come OIDC |
+| **Authentik** | `PG_PASSWORD` (auto), `AUTHENTIK_SECRET_KEY` (auto), `ADMIN_EMAIL`, `DOMAIN` | |
+| **Mailrise** | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `LISTEN_PORT` | Genera `mailrise.conf` dai placeholder |
+
+### Outline — flusso dettagliato
+
+1. **Nome cartella** (es. `docs`, `wiki`) → `INSTALL_DIR=~/workspace/<nome>`
+2. **URL pubblico** e **porta locale** (default 3000, per multi-istanza)
+3. **Provider autenticazione** (0=Nessuno, 1=OIDC, 2=Slack, 3=Google, 4=Azure, 5=Discord)
+4. **SMTP** completo (host, porta, username, password, from email, SSL, nome servizio)
+   - `SMTP_FROM_EMAIL` ha come default `<NomeCartella> <smtp_username>`
+5. **IP reverse proxy** → popola sia `PROXY_IP_HEADER` che `ALLOWED_PRIVATE_IP_ADDRESSES`
+6. **Webhook Telegram** (opzionale):
+   - Chiede `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, porta webhook (default 5000)
+   - Appende il servizio `outline-telegram-webhook` al `docker-compose.yml` scaricato
+   - `OUTLINE_SIGNING_SECRET` e `OUTLINE_API_TOKEN` restano vuoti con istruzioni post-avvio nel riepilogo
+
+## Dettagli tecnici
+
+- **Password**: non possono essere vuote — validazione con `IFS= read -rs`, strip `\r`, controllo `${#pw} -eq 0`
+- **Segreti auto-generati**: `openssl rand -hex 32`, mostrati nel riepilogo finale
+- **`app.conf`**: formato `KEY=value` bash-sourceable, contiene `APP_NAME`, `APP_DESCRIPTION`, `APP_VERSION`, `REQUIRES`
+- **Repo GitHub**: `https://github.com/Italcloud/app-installer` — variabile `REPO_URL` configurabile in testa a `install.sh`
+- **Docker Compose**: plugin v2 (`docker compose`), non v1 (`docker-compose`)
+- **Shell**: `set -euo pipefail` in testa a tutti gli script
+- **Target**: Debian 13 con bash 5
+- **`.gitignore`**: esclude `.env` ma non `.env.example`
+- **Testo interattivo**: italiano
+
+## Mailrise — note specifiche
+
+- Monta `./mailrise.conf:/etc/mailrise.conf` (file generato dall'installer)
+- `mailrise.conf.example` contiene alias pre-configurati con placeholder `PLACEHOLDER_BOT` e `PLACEHOLDER_CHATID`
+- L'installer scarica il template, sostituisce i placeholder e salva `mailrise.conf` nella directory di installazione
+- Gli alias (`unimus@mailrise.xyz`, `omada@mailrise.xyz` ecc.) sono esempi — l'utente li modifica dopo l'installazione
+- Ogni alias può avere un `TELEGRAM_CHAT_ID` diverso per notifiche separate
+- Rete Docker: bridge personalizzata `monitoring`

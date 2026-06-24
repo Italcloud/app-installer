@@ -24,14 +24,14 @@ fi
 
 # ─── App disponibili ───────────────────────────────────────────────────────────
 APPS=(
-  zoraxy
-  nginx-proxy-manager
-  outline
-  checkmk
-  omada-controller
-  netbird
   authentik
+  checkmk
   mailrise
+  netbird
+  nginx-proxy-manager
+  omada-controller
+  outline
+  zoraxy
 )
 
 # ─── Funzioni ──────────────────────────────────────────────────────────────────
