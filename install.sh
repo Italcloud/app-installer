@@ -131,6 +131,7 @@ chiedi_variabili_app() {
       echo "   UTILS_SECRET : $UTILS_SECRET"
       echo ""
       leggi_input "URL pubblico di Outline (es. https://docs.example.com)" "" OUTLINE_URL
+      leggi_input "Porta locale esposta sul proxy (es. 3000, 3001, 3002...)" "3000" EXPOSE_PORT
       echo ""
       echo "Provider di autenticazione:"
       echo "  0) Nessuno (configura manualmente in seguito)"
@@ -264,6 +265,7 @@ genera_env() {
       ;;
     outline)
       sed_inplace "URL" "$OUTLINE_URL"
+      sed_inplace "EXPOSE_PORT" "$EXPOSE_PORT"
       sed_inplace "SECRET_KEY" "$SECRET_KEY"
       sed_inplace "UTILS_SECRET" "$UTILS_SECRET"
       sed_inplace "SMTP_HOST" "$SMTP_HOST"
