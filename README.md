@@ -23,7 +23,7 @@ Passa il nome dell'app come argomento per saltare il menu di selezione:
 bash <(wget -qO- https://raw.githubusercontent.com/Italcloud/app-installer/master/install.sh) checkmk
 ```
 
-App disponibili: `zoraxy`, `nginx-proxy-manager`, `outline`, `checkmk`, `omada-controller`, `netbird`, `authentik`
+App disponibili: `authentik`, `checkmk`, `mailrise`, `netbird`, `nginx-proxy-manager`, `omada-controller`, `outline`, `zoraxy`
 
 ### Se hai già clonato il repo
 
@@ -41,14 +41,15 @@ Lo script esegue in sequenza:
 
 1. **Verifica prerequisiti** — controlla che `docker`, `docker compose` (plugin v2), `curl`, `wget` e `openssl` siano presenti
 2. **Scelta app** — menu numerato oppure argomento da riga di comando
-3. **Scelta versione Docker** — propone il tag stabile consigliato, con opzione `latest` o tag manuale
-4. **Modalità di esposizione** — porta diretta (`IP:porta`) o reverse proxy (hostname/dominio)
-5. **Variabili specifiche** — chiede le credenziali necessarie; le password e i segreti vengono generati automaticamente con `openssl rand -hex 32`
-6. **Download file** — scarica `docker-compose.yml` e `.env.example` dal repository
-7. **Generazione `.env`** — compila il file con tutti i valori inseriti
-8. **Deploy** — esegue `docker compose pull` e `docker compose up -d`
-9. **Health check** — verifica che tutti i container siano in stato `running`
-10. **Riepilogo** — mostra URL di accesso, credenziali generate e percorso di installazione
+3. **Directory di installazione** — calcolata automaticamente come `~/workspace/<nomeapp>/`; per Outline il nome cartella è scelto dall'utente (es. `docs`, `wiki`)
+4. **Scelta versione Docker** — propone il tag stabile consigliato, con opzione `latest` o tag manuale
+5. **Modalità di esposizione** — porta diretta (`IP:porta`) o reverse proxy (hostname/dominio); le app con porte fisse saltano questo passaggio
+6. **Variabili specifiche** — chiede le credenziali necessarie; le password e i segreti vengono generati automaticamente con `openssl rand -hex 32`
+7. **Download file** — scarica `docker-compose.yml` e `.env.example` dal repository
+8. **Generazione `.env`** — compila il file con tutti i valori inseriti
+9. **Deploy** — esegue `docker compose pull` e `docker compose up -d`
+10. **Health check** — verifica che tutti i container siano in stato `running`
+11. **Riepilogo** — mostra URL di accesso, credenziali generate e percorso di installazione
 
 I file vengono installati in:
 
@@ -63,6 +64,17 @@ I file vengono installati in:
     ├── logs/       # log persistenti
     └── storage/    # upload e media
 ```
+
+### Modalità di esposizione
+
+| App | Comportamento |
+|-----|--------------|
+| `omada-controller` | Porte fisse — `network_mode: host` |
+| `nginx-proxy-manager` | Porte 80/443 fisse + management port configurabile |
+| `zoraxy` | Porte 80/443 fisse + management port configurabile |
+| `mailrise` | Porta SMTP fissa (default 8025, configurabile) |
+| `outline` | Sempre reverse proxy — chiede solo la porta locale (per multi-istanza) |
+| Altre app | Chiede: porta diretta o reverse proxy |
 
 ---
 
@@ -88,15 +100,16 @@ Sistema operativo supportato: Debian 12/13, Ubuntu 22.04+
 
 ## App disponibili
 
-| App | Descrizione | Versione stabile | Dipendenze |
-|-----|-------------|-----------------|------------|
-| `zoraxy` | Reverse proxy con UI web | 3.2.5r2 | — |
-| `nginx-proxy-manager` | Gestione reverse proxy Nginx con UI | 2.15.1 | — |
-| `outline` | Wiki e knowledge base collaborativa | 1.8.1 | — |
+| App | Descrizione | Versione stabile | Note |
+|-----|-------------|-----------------|------|
+| `authentik` | Piattaforma di identity e SSO self-hosted | 2026.5.3 | Include PostgreSQL e Redis |
 | `checkmk` | Piattaforma di monitoraggio IT | 2.4.0p32 | — |
-| `omada-controller` | Controller per access point TP-Link Omada | 6.2.10.17 | — |
-| `netbird` | VPN mesh peer-to-peer | 0.73.2 | Authentik (opzionale, OIDC) |
-| `authentik` | Piattaforma di identity e SSO self-hosted | 2026.5.3 | — |
+| `mailrise` | Gateway SMTP → notifiche Telegram/Apprise | latest | Rete Docker `monitoring` |
+| `netbird` | VPN mesh peer-to-peer con gestione centralizzata | 0.73.2 | Authentik opzionale (OIDC) |
+| `nginx-proxy-manager` | Gestione reverse proxy Nginx con UI web | 2.15.1 | Porte 80/443 fisse |
+| `omada-controller` | Controller per access point TP-Link Omada | 6.2 | `network_mode: host` |
+| `outline` | Wiki e knowledge base collaborativa | 1.8.1 | Include PostgreSQL e Redis; webhook Telegram opzionale |
+| `zoraxy` | Reverse proxy con UI web semplificata | 3.2.5r2 | Porte 80/443 fisse |
 
 ---
 
@@ -110,10 +123,19 @@ app-installer/
 │   ├── prompts.sh          # Input utente interattivo
 │   └── deploy.sh           # Docker Compose deploy + health check
 └── apps/
-    └── <nome-app>/
-        ├── app.conf        # Metadati app (nome, versione, dipendenze)
-        ├── docker-compose.yml
-        └── .env.example    # Variabili d'ambiente con valori di esempio
+    ├── authentik/
+    ├── checkmk/
+    ├── mailrise/
+    │   ├── app.conf
+    │   ├── docker-compose.yml
+    │   ├── .env.example
+    │   └── mailrise.conf.example   # Template alias notifiche (modificabile post-installazione)
+    ├── netbird/
+    ├── nginx-proxy-manager/
+    ├── omada-controller/
+    ├── outline/
+    └── zoraxy/
+        (ogni app contiene: app.conf, docker-compose.yml, .env.example)
 ```
 
 ---
