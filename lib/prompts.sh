@@ -60,9 +60,9 @@ leggi_si_no() {
 
   local hint
   if [[ "$default" == "s" ]]; then
-    hint="[S/n]"
+    hint="[Y/n]"
   else
-    hint="[s/N]"
+    hint="[y/N]"
   fi
 
   while true; do
