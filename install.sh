@@ -467,6 +467,12 @@ riepilogo_finale() {
       echo "    Server : $(hostname -I | awk '{print $1}')"
       echo "    Porta  : $LISTEN_PORT"
       echo "    Email  : <alias>@mailrise.xyz  (es. omada@mailrise.xyz)"
+      echo ""
+      echo "    NOTA: il file $dest/mailrise.conf contiene alias di esempio."
+      echo "    Modificalo per adattarlo alle tue esigenze: puoi aggiungere,"
+      echo "    rimuovere o rinominare gli alias. Ogni alias può avere un"
+      echo "    TELEGRAM_CHAT_ID diverso se vuoi notifiche separate per gruppo."
+      echo "    Dopo ogni modifica: docker compose restart mailrise"
       ;;
   esac
 

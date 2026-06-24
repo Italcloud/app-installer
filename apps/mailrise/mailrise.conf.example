@@ -6,14 +6,14 @@ configs:
       title_template: "Message: ${subject} from: ${from}"
       body_template: "${body}"
       body_format: markdown
-  ats1@mailrise.xyz:
+  ats@mailrise.xyz:
     urls:
       - tgram://PLACEHOLDER_BOT/PLACEHOLDER_CHATID/
     mailrise:
       title_template: "ATS RACK Walter EVENT"
       body_template: "${body}"
       body_format: markdown
-  ats2@mailrise.xyz:
+  ups@mailrise.xyz:
     urls:
       - tgram://PLACEHOLDER_BOT/PLACEHOLDER_CHATID/
     mailrise:
@@ -25,13 +25,6 @@ configs:
       - tgram://PLACEHOLDER_BOT/PLACEHOLDER_CHATID/
     mailrise:
       title_template: "OMADA CONTROLLER EVENT"
-      body_template: "${body}"
-      body_format: markdown
-  tlc@mailrise.xyz:
-    urls:
-      - tgram://PLACEHOLDER_BOT/PLACEHOLDER_CHATID/
-    mailrise:
-      title_template: "Notifica TLC"
       body_template: "${body}"
       body_format: markdown
 
