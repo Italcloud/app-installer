@@ -3,53 +3,45 @@ services:
     image: outlinewiki/outline:${APP_TAG}
     container_name: outline
     restart: unless-stopped
+    env_file: .env
     ports:
       - "${EXPOSE_PORT:-3000}:3000"
+    volumes:
+      - ./data/storage:/var/lib/outline/data
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      - SECRET_KEY=${SECRET_KEY}
-      - UTILS_SECRET=${UTILS_SECRET}
-      - DATABASE_URL=postgres://outline:${PG_PASSWORD}@postgres:5432/outline
-      - REDIS_URL=redis://redis:6379
-      - URL=${URL}
-      - PORT=3000
-      - SLACK_CLIENT_ID=${SLACK_CLIENT_ID:-}
-      - SLACK_CLIENT_SECRET=${SLACK_CLIENT_SECRET:-}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
-      - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID:-}
-      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET:-}
-    volumes:
-      - ${INSTALL_DIR}/data/storage:/var/lib/outline/data
-
-  postgres:
-    image: postgres:16.3-alpine
-    container_name: outline-postgres
-    restart: unless-stopped
-    environment:
-      - POSTGRES_USER=outline
-      - POSTGRES_PASSWORD=${PG_PASSWORD}
-      - POSTGRES_DB=outline
-    volumes:
-      - ${INSTALL_DIR}/data/db:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U outline"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   redis:
-    image: redis:7.2-alpine
+    image: redis:7-alpine
     container_name: outline-redis
     restart: unless-stopped
+    expose:
+      - "6379"
     volumes:
-      - ${INSTALL_DIR}/data/redis:/data
+      - ./data/redis:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 30s
+      retries: 3
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: outline-postgres
+    restart: unless-stopped
+    expose:
+      - "5432"
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "outline", "-U", "user"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    environment:
+      POSTGRES_USER: 'user'
+      POSTGRES_PASSWORD: 'pass'
+      POSTGRES_DB: 'outline'

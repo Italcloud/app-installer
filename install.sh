@@ -127,26 +127,71 @@ chiedi_variabili_app() {
       echo "→ Generazione chiavi segrete automatica..."
       SECRET_KEY=$(genera_secret)
       UTILS_SECRET=$(genera_secret)
-      echo "   SECRET_KEY    : $SECRET_KEY"
-      echo "   UTILS_SECRET  : $UTILS_SECRET"
+      echo "   SECRET_KEY   : $SECRET_KEY"
+      echo "   UTILS_SECRET : $UTILS_SECRET"
+      echo ""
       leggi_input "URL pubblico di Outline (es. https://docs.example.com)" "" OUTLINE_URL
       echo ""
-      echo "Provider OAuth — scegli uno tra: slack, google, azure, oidc"
-      leggi_input "Provider OAuth" "slack" OAUTH_PROVIDER
-      case "$OAUTH_PROVIDER" in
-        slack)
-          leggi_input "Slack Client ID" "" SLACK_CLIENT_ID
-          chiedi_password "Slack Client Secret" SLACK_CLIENT_SECRET
-          ;;
-        google)
-          leggi_input "Google Client ID" "" GOOGLE_CLIENT_ID
-          chiedi_password "Google Client Secret" GOOGLE_CLIENT_SECRET
-          ;;
-        *)
-          leggi_input "OAuth Client ID" "" OAUTH_CLIENT_ID
-          chiedi_password "OAuth Client Secret" OAUTH_CLIENT_SECRET
-          ;;
-      esac
+      echo "Provider di autenticazione:"
+      echo "  1) OIDC generico (es. Authentik)"
+      echo "  2) Slack"
+      echo "  3) Google"
+      echo "  4) Microsoft Azure AD"
+      echo "  5) Discord"
+      echo ""
+      local _auth_choice
+      while true; do
+        leggi_input "Scegli provider (1-5)" "1" _auth_choice
+        case "$_auth_choice" in
+          1)
+            OAUTH_PROVIDER="oidc"
+            leggi_input "OIDC Client ID" "" OIDC_CLIENT_ID
+            chiedi_password "OIDC Client Secret" OIDC_CLIENT_SECRET
+            leggi_input "OIDC Auth URI (es. https://auth.example.com/application/o/authorize/)" "" OIDC_AUTH_URI
+            leggi_input "OIDC Token URI (es. https://auth.example.com/application/o/token/)" "" OIDC_TOKEN_URI
+            leggi_input "OIDC Userinfo URI (es. https://auth.example.com/application/o/userinfo/)" "" OIDC_USERINFO_URI
+            leggi_input "OIDC Logout URI (lascia vuoto se non necessario)" "" OIDC_LOGOUT_URI
+            leggi_input "Nome visualizzato provider (es. Authentik)" "Authentik" OIDC_DISPLAY_NAME
+            break ;;
+          2)
+            OAUTH_PROVIDER="slack"
+            leggi_input "Slack Client ID" "" SLACK_CLIENT_ID
+            chiedi_password "Slack Client Secret" SLACK_CLIENT_SECRET
+            break ;;
+          3)
+            OAUTH_PROVIDER="google"
+            leggi_input "Google Client ID" "" GOOGLE_CLIENT_ID
+            chiedi_password "Google Client Secret" GOOGLE_CLIENT_SECRET
+            break ;;
+          4)
+            OAUTH_PROVIDER="azure"
+            leggi_input "Azure Client ID" "" AZURE_CLIENT_ID
+            chiedi_password "Azure Client Secret" AZURE_CLIENT_SECRET
+            leggi_input "Azure Resource App ID" "" AZURE_RESOURCE_APP_ID
+            break ;;
+          5)
+            OAUTH_PROVIDER="discord"
+            leggi_input "Discord Client ID" "" DISCORD_CLIENT_ID
+            chiedi_password "Discord Client Secret" DISCORD_CLIENT_SECRET
+            leggi_input "Discord Server ID" "" DISCORD_SERVER_ID
+            break ;;
+          *) echo "Scelta non valida. Inserisci un numero tra 1 e 5." ;;
+        esac
+      done
+      echo ""
+      echo "Configurazione SMTP:"
+      leggi_input "SMTP Host" "smtp.maileroo.com" SMTP_HOST
+      leggi_input "SMTP Port" "465" SMTP_PORT
+      leggi_input "SMTP Username (indirizzo mittente)" "" SMTP_USERNAME
+      chiedi_password "SMTP Password" SMTP_PASSWORD
+      leggi_input "SMTP From Email (es. Docs <noreply@example.com>)" "" SMTP_FROM_EMAIL
+      local _smtp_secure_yn
+      leggi_si_no "SMTP usa SSL/TLS?" "s" _smtp_secure_yn
+      SMTP_SECURE="$([[ "$_smtp_secure_yn" == "s" ]] && echo true || echo false)"
+      leggi_input "SMTP Name (nome servizio)" "Maileroo" SMTP_NAME
+      echo ""
+      leggi_input "IP del reverse proxy (PROXY_IP_HEADER, lascia vuoto se non noto)" "" PROXY_IP_HEADER
+      leggi_input "IP privati autorizzati separati da virgola (es. 10.0.0.1,10.0.0.2)" "" ALLOWED_PRIVATE_IP_ADDRESSES
       ;;
     checkmk)
       chiedi_password "Password amministratore (utente: cmkadmin)" ADMIN_PASSWORD
@@ -210,21 +255,45 @@ genera_env() {
       sed_inplace "MANAGEMENT_PORT" "$MANAGEMENT_PORT"
       ;;
     outline)
+      sed_inplace "URL" "$OUTLINE_URL"
       sed_inplace "SECRET_KEY" "$SECRET_KEY"
       sed_inplace "UTILS_SECRET" "$UTILS_SECRET"
-      sed_inplace "URL" "$OUTLINE_URL"
-      case "$OAUTH_PROVIDER" in
+      sed_inplace "SMTP_HOST" "$SMTP_HOST"
+      sed_inplace "SMTP_PORT" "$SMTP_PORT"
+      sed_inplace "SMTP_USERNAME" "$SMTP_USERNAME"
+      sed_inplace "SMTP_PASSWORD" "$SMTP_PASSWORD"
+      sed_inplace "SMTP_FROM_EMAIL" "$SMTP_FROM_EMAIL"
+      sed_inplace "SMTP_SECURE" "$SMTP_SECURE"
+      sed_inplace "SMTP_NAME" "$SMTP_NAME"
+      sed_inplace "PROXY_IP_HEADER" "${PROXY_IP_HEADER:-}"
+      sed_inplace "ALLOWED_PRIVATE_IP_ADDRESSES" "${ALLOWED_PRIVATE_IP_ADDRESSES:-}"
+      case "${OAUTH_PROVIDER:-}" in
+        oidc)
+          sed_inplace "OIDC_CLIENT_ID" "$OIDC_CLIENT_ID"
+          sed_inplace "OIDC_CLIENT_SECRET" "$OIDC_CLIENT_SECRET"
+          sed_inplace "OIDC_AUTH_URI" "$OIDC_AUTH_URI"
+          sed_inplace "OIDC_TOKEN_URI" "$OIDC_TOKEN_URI"
+          sed_inplace "OIDC_USERINFO_URI" "$OIDC_USERINFO_URI"
+          sed_inplace "OIDC_LOGOUT_URI" "${OIDC_LOGOUT_URI:-}"
+          sed_inplace "OIDC_DISPLAY_NAME" "$OIDC_DISPLAY_NAME"
+          ;;
         slack)
-          sed_inplace "SLACK_CLIENT_ID" "${SLACK_CLIENT_ID:-}"
-          sed_inplace "SLACK_CLIENT_SECRET" "${SLACK_CLIENT_SECRET:-}"
+          sed_inplace "SLACK_CLIENT_ID" "$SLACK_CLIENT_ID"
+          sed_inplace "SLACK_CLIENT_SECRET" "$SLACK_CLIENT_SECRET"
           ;;
         google)
-          sed_inplace "GOOGLE_CLIENT_ID" "${GOOGLE_CLIENT_ID:-}"
-          sed_inplace "GOOGLE_CLIENT_SECRET" "${GOOGLE_CLIENT_SECRET:-}"
+          sed_inplace "GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_ID"
+          sed_inplace "GOOGLE_CLIENT_SECRET" "$GOOGLE_CLIENT_SECRET"
           ;;
-        *)
-          sed_inplace "OAUTH_CLIENT_ID" "${OAUTH_CLIENT_ID:-}"
-          sed_inplace "OAUTH_CLIENT_SECRET" "${OAUTH_CLIENT_SECRET:-}"
+        azure)
+          sed_inplace "AZURE_CLIENT_ID" "$AZURE_CLIENT_ID"
+          sed_inplace "AZURE_CLIENT_SECRET" "$AZURE_CLIENT_SECRET"
+          sed_inplace "AZURE_RESOURCE_APP_ID" "$AZURE_RESOURCE_APP_ID"
+          ;;
+        discord)
+          sed_inplace "DISCORD_CLIENT_ID" "$DISCORD_CLIENT_ID"
+          sed_inplace "DISCORD_CLIENT_SECRET" "$DISCORD_CLIENT_SECRET"
+          sed_inplace "DISCORD_SERVER_ID" "$DISCORD_SERVER_ID"
           ;;
       esac
       ;;
@@ -299,9 +368,11 @@ riepilogo_finale() {
       echo "    MANAGEMENT_PORT  : $MANAGEMENT_PORT"
       ;;
     outline)
-      echo "    SECRET_KEY      : $SECRET_KEY"
-      echo "    UTILS_SECRET    : $UTILS_SECRET"
-      echo "    URL             : $OUTLINE_URL"
+      echo "    URL              : $OUTLINE_URL"
+      echo "    SECRET_KEY       : $SECRET_KEY"
+      echo "    UTILS_SECRET     : $UTILS_SECRET"
+      echo "    Auth provider    : ${OAUTH_PROVIDER:-}"
+      echo "    SMTP             : $SMTP_HOST:$SMTP_PORT (${SMTP_USERNAME})"
       ;;
     checkmk)
       echo "    ADMIN_PASSWORD  : $ADMIN_PASSWORD"
@@ -363,10 +434,21 @@ main() {
   # Carica configurazione app
   carica_app_conf "$APP_NAME"
 
-  # Directory calcolata automaticamente
-  INSTALL_DIR="$HOME/workspace/$APP_NAME"
+  # Directory di installazione
+  if [[ "$APP_NAME" == "outline" ]]; then
+    local _folder
+    echo ""
+    leggi_input "Nome cartella installazione in ~/workspace (es. docs, wiki)" "outline" _folder
+    INSTALL_DIR="$HOME/workspace/$_folder"
+  else
+    INSTALL_DIR="$HOME/workspace/$APP_NAME"
+  fi
   mkdir -p "$INSTALL_DIR"
   echo "  Directory: $INSTALL_DIR"
+  if [[ "$APP_NAME" == "outline" ]]; then
+    mkdir -p "$INSTALL_DIR/data/storage"
+    chmod 777 "$INSTALL_DIR/data/storage"
+  fi
 
   # Scelta versione Docker
   chiedi_versione "$APP_VERSION" APP_TAG
