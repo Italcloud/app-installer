@@ -1,0 +1,15 @@
+networks:
+  monitoring:
+    driver: bridge
+
+services:
+  mailrise:
+    image: yoryan/mailrise:${APP_TAG}
+    container_name: mailrise
+    restart: unless-stopped
+    volumes:
+      - ./mailrise.conf:/etc/mailrise.conf
+    ports:
+      - "${LISTEN_PORT:-8025}:8025"
+    networks:
+      - monitoring

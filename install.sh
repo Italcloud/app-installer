@@ -31,6 +31,7 @@ APPS=(
   omada-controller
   netbird
   authentik
+  mailrise
 )
 
 # ─── Funzioni ──────────────────────────────────────────────────────────────────
@@ -216,6 +217,11 @@ chiedi_variabili_app() {
     omada-controller)
       echo "→ Nessuna variabile critica richiesta per Omada Controller."
       ;;
+    mailrise)
+      leggi_input "Telegram Bot Token" "" TELEGRAM_BOT_TOKEN
+      leggi_input "Telegram Chat ID" "" TELEGRAM_CHAT_ID
+      leggi_input "Porta SMTP locale" "8025" LISTEN_PORT
+      ;;
     netbird)
       leggi_input "Dominio pubblico NetBird (es. nb.example.com)" "" NETBIRD_DOMAIN
       echo "→ Generazione password TURN/COTURN automatica..."
@@ -339,6 +345,25 @@ genera_env() {
       sed_inplace "ADMIN_EMAIL" "$ADMIN_EMAIL"
       sed_inplace "DOMAIN" "$DOMAIN"
       ;;
+    mailrise)
+      sed_inplace "LISTEN_PORT" "$LISTEN_PORT"
+      sed_inplace "TELEGRAM_BOT_TOKEN" "$TELEGRAM_BOT_TOKEN"
+      sed_inplace "TELEGRAM_CHAT_ID" "$TELEGRAM_CHAT_ID"
+      # Genera mailrise.conf dai placeholder
+      local _mrc_src
+      if [[ -f "$SCRIPT_DIR/apps/mailrise/mailrise.conf.example" ]]; then
+        _mrc_src="$SCRIPT_DIR/apps/mailrise/mailrise.conf.example"
+      else
+        _mrc_src="$(mktemp)"
+        curl -fsSL "$REPO_URL/apps/mailrise/mailrise.conf.example" -o "$_mrc_src"
+      fi
+      cp "$_mrc_src" "$dest/mailrise.conf"
+      local _escaped_bot _escaped_chat
+      _escaped_bot=$(printf '%s\n' "$TELEGRAM_BOT_TOKEN" | sed 's/[&/\\]/\\&/g')
+      _escaped_chat=$(printf '%s\n' "$TELEGRAM_CHAT_ID" | sed 's/[&/\\]/\\&/g')
+      sed -i "s|PLACEHOLDER_BOT|${_escaped_bot}|g" "$dest/mailrise.conf"
+      sed -i "s|PLACEHOLDER_CHATID|${_escaped_chat}|g" "$dest/mailrise.conf"
+      ;;
   esac
 
   # Variabili esposizione (non applicabile per app con porte fisse)
@@ -374,6 +399,8 @@ riepilogo_finale() {
     echo "  Proxy HTTP/S    : porte 80 e 443 (configurabili dall'UI)"
   elif [[ "$app" == "outline" ]]; then
     echo "  URL di accesso  : ${OUTLINE_URL}"
+  elif [[ "$app" == "mailrise" ]]; then
+    echo "  SMTP endpoint   : $(hostname -I | awk '{print $1}'):${LISTEN_PORT}"
   elif [[ "$EXPOSE_MODE" == "porta" ]]; then
     echo "  URL di accesso  : http://$(hostname -I | awk '{print $1}'):${EXPOSE_PORT}"
   else
@@ -430,6 +457,16 @@ riepilogo_finale() {
       echo "    AUTHENTIK_SECRET_KEY : $AUTHENTIK_SECRET_KEY"
       echo "    ADMIN_EMAIL          : $ADMIN_EMAIL"
       echo "    DOMAIN               : $DOMAIN"
+      ;;
+    mailrise)
+      echo "    TELEGRAM_BOT_TOKEN : $TELEGRAM_BOT_TOKEN"
+      echo "    TELEGRAM_CHAT_ID   : $TELEGRAM_CHAT_ID"
+      echo "    Porta SMTP         : $LISTEN_PORT"
+      echo ""
+      echo "    Configura le app per inviare notifiche via SMTP:"
+      echo "    Server : $(hostname -I | awk '{print $1}')"
+      echo "    Porta  : $LISTEN_PORT"
+      echo "    Email  : <alias>@mailrise.xyz  (es. omada@mailrise.xyz)"
       ;;
   esac
 
@@ -492,7 +529,7 @@ main() {
   chiedi_versione "$APP_VERSION" APP_TAG
 
   # Modalità esposizione (omada e npm usano porte fisse, non viene chiesta)
-  if [[ "$APP_NAME" == "omada-controller" || "$APP_NAME" == "nginx-proxy-manager" || "$APP_NAME" == "zoraxy" ]]; then
+  if [[ "$APP_NAME" == "omada-controller" || "$APP_NAME" == "nginx-proxy-manager" || "$APP_NAME" == "zoraxy" || "$APP_NAME" == "mailrise" ]]; then
     EXPOSE_MODE="fixed"
     EXPOSE_PORT=""
     EXPOSE_HOSTNAME=""
